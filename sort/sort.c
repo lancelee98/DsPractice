@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <malloc.h>
+#include <string.h>
 // 数组长度
 #define LENGTH(array) ( (sizeof(array)) / (sizeof(array[0])) )
 #define swap(a,b) do{a=a+b;b=a-b;a=a-b;}while(0) //两个数相同时 会导致结果为0
@@ -257,13 +258,122 @@ void AdjustUp(int a[], int k)
 }
 
 
+//四、归并排序
+
+/**
+**  归并排序（分治法 每次分成左右两个子序列 且左右两个子序列有序）
+**  空间复杂度O（n） 需要辅助数组b[]
+**  时间复杂度：O（nlogn）
+**  稳定性：稳定
+**/
+void Merge(int a[], int b[], int low, int mid, int high)
+{
+	//a是原数组 b是辅助数组 low-mid；mid+1-high 各自有序 将他们合并成一个有序表存放在a中
+	int i, j, count;//count代表当前排序好的数据
+	for (int k = low; k <= high; k++)//将a中所有的数据放到b中
+		b[k] = a[k];
+	for (i = low, j = mid + 1, count = low; i <= mid && j <= high; count++)//选择两个有序组中更小的一个放在a中
+	{
+		if (b[i] < b[j])
+			a[count] = b[i++];
+		else
+			a[count] = b[j++];
+	}
+	//如下两个循环只会执行一个
+	while (i <= mid) a[count++] = b[i++];//若第一个表未检测完 复制
+	while (j <= high) a[count++] = b[j++];//若第二个表未检测完 复制
+}
+void MergeSort(int a[],int b[], int low, int high)
+{
+	if (low < high)
+	{
+		int mid = (low + high) / 2;//划分子序列
+		MergeSort(a,b ,low, mid);//对左侧递归
+		MergeSort(a,b, mid + 1, high);//右侧递归
+		Merge(a, b, low, mid, high);//排序
+		//show(b, 0, high+1, "b:");
+	}
+}
+
+
+//五、非比较排序
+
+/**
+**  计数排序 记录数组中每个元素的个数 然后输出
+**  输入元素为n个0-k之间的数
+**  空间复杂度O（n+k） 
+**  时间复杂度：O（n+k）
+**  稳定性：稳定 
+**  适用于k不是很大 序列较为集中 排序速度快于任何比较排序
+**/
+
+void CountSort(int a[], int len)
+{
+}
+
+
+/**
+**  基数排序 基于关键字各位的大小进行排序
+**  r代表基数 10进制时r=10
+**  d代表最大数据的位数 
+**  空间复杂度O（r）
+**  时间复杂度：O（d（n+r）） 需要d趟分配和收集 一趟分配是O（n） 一趟收集是O(r)
+**  稳定性：稳定
+**  适用于k不是很大 序列较为集中 排序速度快于任何比较排序
+**/
+int maxbit(int data[], int n) //辅助函数，求数据的最大位数
+{
+	int d = 1; //保存最大的位数
+	int p = 10;
+	for (int i = 0; i < n; i++)
+	{
+		while (data[i] >= p)
+		{
+			p *= 10;
+			++d;
+		}
+	}
+	return d;
+}
+void radixsort(int data[], int n) //基数排序
+{
+	int d = maxbit(data, n);//最大位数d
+	int* tmp = (int*)malloc(n * sizeof(int));
+	int* count = (int*)malloc(10 * sizeof(int)); //r为10 代表十进制数 基数为10
+	memset(tmp, 0, n * sizeof(int));
+	memset(count, 0, 10 * sizeof(int));
+	int i, j, k;
+	int radix = 1;
+	for (i = 1; i <= d; i++) //进行d次排序
+	{
+		memset(count, 0, 10 * sizeof(int)); //每次分配前清空计数器
+		for (j = 0; j < n; j++)
+		{
+			k = (data[j] / radix) % 10; //统计每个桶中的记录数
+			count[k]++;
+		}
+		for (j = 1; j < 10; j++)
+			count[j] = count[j - 1] + count[j]; //将tmp中的位置依次分配给每个桶
+		for (j = n - 1; j >= 0; j--) //将所有桶中记录依次收集到tmp中
+		{
+			k = (data[j] / radix) % 10;
+			tmp[count[k] - 1] = data[j];
+			count[k]--;
+		}
+		for (j = 0; j < n; j++) //将临时数组的内容复制到data中
+			data[j] = tmp[j];
+		radix = radix * 10;
+	}
+	free(tmp);
+	free(count);
+}
+
 void main()
 {
-	int i;
 	int a[] = { 20,40,30,10,60,50 };
 	int ilen = LENGTH(a);
 
-	//show(a, 0, ilen, "before sort:");
+	show(a, 0, ilen, "before sort:");
 
 	//InsertSort(a, ilen-1);
 	//BInsertSort(a, ilen - 1);
@@ -274,11 +384,20 @@ void main()
 	//QuickSort(a, 0, ilen-1);
 
 	//SelectSort(a, ilen);
-	//show(a, 0, ilen, "after  sort:");
 
-	int heapArray[] = { 0,53,17,78,9,45,65,87,32 };
-	int heaplen = LENGTH(heapArray);
-	show(heapArray, 1, heaplen, "before sort:");
-	HeapSort(heapArray, heaplen-1);
-	show(heapArray, 1, heaplen, "after  sort:");
+	//int* b = (int*)malloc(ilen * sizeof(int));//分配n个辅助空间
+	//for (int i = 0; i < ilen; i++)
+	//	b[i] = 0;
+	//MergeSort(a, b, 0, ilen-1);
+	//free(b);
+	radixsort(a, ilen);
+	show(a, 0, ilen, "after  sort:");
+	//int heapArray[] = { 0,53,17,78,9,45,65,87,32 };
+	//int heaplen = LENGTH(heapArray);
+	//show(heapArray, 1, heaplen, "before sort:");
+	//HeapSort(heapArray, heaplen-1);
+
+	//show(heapArray, 1, heaplen, "after  sort:");
+
+
 }
